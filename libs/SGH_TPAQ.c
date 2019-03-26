@@ -1,3 +1,13 @@
+/*
+ * SGH_TPAQ.c
+ *
+ * I2C communication with Bosch BME680 Temperature, Humidity and Air Quality Sensor
+ * Based on example by twartzek and Boschsensortech
+ * Application Note
+ *
+ * Author: Anton Saikia
+ *
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,8 +22,6 @@
 #include "bme680.h"
 
 #define     DESTZONE    "TZ=Europe/London"       // Our destination time zone
-
-
 
 // I2C Linux device handle
 int g_i2cFid;
@@ -43,15 +51,9 @@ void i2cSetAddress(int address)
 	}
 }
 
-
-
 void user_delay_ms(uint32_t period)
 {
-
     sleep(period/1000);
-
-
-
 }
 
 int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len)
@@ -77,7 +79,6 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint1
 {
     int8_t rslt = 0; /* Return 0 for Success, non-zero for failure */
 
-
 	uint8_t reg[16];
     reg[0]=reg_addr;
 	
@@ -92,7 +93,6 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint1
 
     return rslt;
 }
-
 
 void write2file(char *outputFile, struct tm tm, struct bme680_field_data data)
 {
@@ -249,10 +249,7 @@ int main(int argc, char *argv[] )
 		backupCounter++;
 	}
 
-
 	printf("** End of measurement **\n");
-
-
 
     // close Linux I2C device
 	i2cClose();
@@ -262,4 +259,3 @@ int main(int argc, char *argv[] )
 	
 	return 0;
 }
-
