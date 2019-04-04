@@ -1,13 +1,3 @@
-/*
- * SGH_TPAQ.c
- *
- * I2C communication with Bosch BME680 Temperature, Humidity and Air Quality Sensor
- * Based on example by twartzek and Boschsensortech
- * Application Note
- *
- * Author: Anton Saikia
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <mysql/mysql.h>
 #include "bme680.h"
 
 #define     DESTZONE    "TZ=Europe/London"       // Our destination time zone
@@ -51,9 +42,15 @@ void i2cSetAddress(int address)
 	}
 }
 
+
+
 void user_delay_ms(uint32_t period)
 {
+
     sleep(period/1000);
+
+
+
 }
 
 int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len)
@@ -79,6 +76,7 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint1
 {
     int8_t rslt = 0; /* Return 0 for Success, non-zero for failure */
 
+
 	uint8_t reg[16];
     reg[0]=reg_addr;
 	
@@ -93,6 +91,7 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint1
 
     return rslt;
 }
+
 
 void write2file(char *outputFile, struct tm tm, struct bme680_field_data data)
 {
@@ -120,6 +119,18 @@ void write2file(char *outputFile, struct tm tm, struct bme680_field_data data)
 
 int main(int argc, char *argv[] )
 {
+        //Connection to MySQL database
+        MYSQL *mysqlConn;
+        MYSQL_RES result;
+        MYSQL_ROW row;
+        static char *host = "localhost";  /* Host name */
+        static char *user = "UOG_SGH";    /* User name */
+        static char *pass = "****";       /* User Password */
+        static char *dbname = "SGH_TPAQ"; /* Database name */
+        mysqlConn = mysql_init(NULL);
+	char buff[1024];
+	int j;
+
 	// create lock file first
 	FILE *f = fopen("~bme680i2c.lock", "w");
 	if (f == NULL)
@@ -129,7 +140,6 @@ int main(int argc, char *argv[] )
 	}
 	fprintf(f,"I2C locked by BME680 readout. \r\n");
 	fclose(f);
-
 
 	int delay = 3;
 	int nMeas = 3;
@@ -153,7 +163,7 @@ int main(int argc, char *argv[] )
 	}
 
 
-	printf("** UofG Smartgreenhouse Temperature Humidity Air Quality measurements using BME680 **\n");
+	printf("** UofG Smartgreenhouse Environment measurements using BME680 **\n");
 
 	time_t t = time(NULL);
     putenv(DESTZONE);               // Switch to destination time zone
@@ -239,6 +249,13 @@ int main(int argc, char *argv[] )
 			write2file(outputFile, tm, data);
 			i++;
 		}
+             	
+		// Measurement to MYSQL database
+		if(mysql_real_connect(mysqlConn, host, user, pass, dbname, 0, NULL, 0)!=NULL)
+		{
+                        snprintf(buff, sizeof buff, "INSERT INTO TPAQ VALUES ('%d', '%02d', '%02d', '%02d', '%02d', '%02d', '%.2f','%.2f','%.2f','%d');",tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, data.temperature / 100.0f, data.pressure / 100.0f, data.humidity / 1000.0f, data.gas_resistance );
+	                mysql_query(mysqlConn, buff);
+		}
 
 		// Trigger a meausurement
 		rslt = bme680_set_sensor_mode(&gas_sensor); /* Trigger a measurement */
@@ -249,9 +266,13 @@ int main(int argc, char *argv[] )
 		backupCounter++;
 	}
 
+
 	printf("** End of measurement **\n");
 
-    // close Linux I2C device
+	// close MySQL
+	mysql_close(mysqlConn);
+
+  	// close Linux I2C device
 	i2cClose();
 	
 	// delete lock file
@@ -259,3 +280,4 @@ int main(int argc, char *argv[] )
 	
 	return 0;
 }
+
