@@ -1,3 +1,14 @@
+/*
+ * SGH_TPAQ.c
+ *
+ * I2C communication with Bosch BME680 Temperature, Humidity and Air Quality Sensor
+ * Based on example by twartzek and Boschsensortech
+ * Sensor Data is exported to MySQL database
+ * Application Note
+ *
+ * Author: Anton Saikia
+ *
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
